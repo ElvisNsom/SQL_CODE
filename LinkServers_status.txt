@@ -1,0 +1,121 @@
+CREATE PROCEDURE dbo.proc_check_linked_servers @emailProfile VARCHAR(255),@emailTo VARCHAR(2000)
+AS 
+ 
+BEGIN
+---Job schedule query
+---exec proc_check_linked_servers 'profiler name','E-mail ID'
+
+DECLARE @test_linkedserver BIT
+DECLARE @servername SYSNAME
+ 
+ 
+select ROW_NUMBER() Over(Order by server_id) as Seq,name as LinkerServer 
+into #LinkedServers
+from sys.servers (nolock) where is_linked=1 ---and [name] not in ('repl_distributor') --If any link server want to exclude  
+ 
+declare @i as int = 1
+declare @j as int = (select count(*) from #LinkedServers)
+ 
+WHILE (@i<=@j) 
+BEGIN
+ 
+ 
+       BEGIN TRY
+       select @servername=LinkerServer from #LinkedServers where Seq=@i
+       --select @servername
+       EXEC @test_linkedserver= sys.sp_testlinkedserver @servername 
+ 
+       PRINT 'Sucessfully connected to ' + CAST(@servername as VARCHAR(30))
+       END TRY
+ 
+       BEGIN CATCH
+       PRINT 'Failed to connect to ' + CAST(@servername as VARCHAR(30))
+ 
+       IF (@emailProfile <> '') AND (@emailTo <> '')
+       BEGIN
+       DECLARE @emailSubject VARCHAR(255)
+       DECLARE @emailBody VARCHAR(8000)
+ 
+       SET @emailSubject = 'Linked Server Connnection Failure : ' + @servername + ' linked server cannot be accessed from ' + @@SERVERNAME
+       SET @emailBody = @emailSubject
+ 
+       EXEC msdb.dbo.sp_send_dbmail 
+              @profile_name= @emailProfile
+              , @recipients=@emailTo
+              , @body=@emailBody
+              , @subject=@emailSubject
+              , @importance='High'
+       END        
+        
+       RAISERROR ('Linked Server Failure', 16, 1, @emailSubject) WITH LOG
+ 
+       END CATCH
+ 
+set @i = @i + 1  
+ END 
+END
+
+
+
+All Link servers working status check and failure alert over E-mail
+webbmotorsports, 2018-02-07 (first published: 2018-01-30)
+What to do when you have multiple Link servers and want to check daily basis link servers working status as alert over E-mail?
+
+This procedure will help you to automation of link server failure alerts status check with help of SQL agent job scheduling. Job query :- 
+exec proc_check_linked_servers 'profiler name','E-mail ID'
+CREATE PROCEDURE dbo.proc_check_linked_servers @emailProfile VARCHAR(255),@emailTo VARCHAR(2000)
+AS 
+ 
+BEGIN
+---Job schedule query
+---exec proc_check_linked_servers 'profiler name','E-mail ID'
+
+DECLARE @test_linkedserver BIT
+DECLARE @servername SYSNAME
+ 
+ 
+select ROW_NUMBER() Over(Order by server_id) as Seq,name as LinkerServer 
+into #LinkedServers
+from sys.servers (nolock) where is_linked=1 ---and [name] not in ('repl_distributor') --If any link server want to exclude  
+ 
+declare @i as int = 1
+declare @j as int = (select count(*) from #LinkedServers)
+ 
+WHILE (@i<=@j) 
+BEGIN
+ 
+ 
+       BEGIN TRY
+       select @servername=LinkerServer from #LinkedServers where Seq=@i
+       --select @servername
+       EXEC @test_linkedserver= sys.sp_testlinkedserver @servername 
+ 
+       PRINT 'Sucessfully connected to ' + CAST(@servername as VARCHAR(30))
+       END TRY
+ 
+       BEGIN CATCH
+       PRINT 'Failed to connect to ' + CAST(@servername as VARCHAR(30))
+ 
+       IF (@emailProfile <> '') AND (@emailTo <> '')
+       BEGIN
+       DECLARE @emailSubject VARCHAR(255)
+       DECLARE @emailBody VARCHAR(8000)
+ 
+       SET @emailSubject = 'Linked Server Connnection Failure : ' + @servername + ' linked server cannot be accessed from ' + @@SERVERNAME
+       SET @emailBody = @emailSubject
+ 
+       EXEC msdb.dbo.sp_send_dbmail 
+              @profile_name= @emailProfile
+              , @recipients=@emailTo
+              , @body=@emailBody
+              , @subject=@emailSubject
+              , @importance='High'
+       END        
+        
+       RAISERROR ('Linked Server Failure', 16, 1, @emailSubject) WITH LOG
+ 
+       END CATCH
+ 
+set @i = @i + 1  
+ END 
+END

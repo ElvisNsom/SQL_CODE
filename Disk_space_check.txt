@@ -1,0 +1,15 @@
+Disk Space Check
+Rinu George Philip, 2018-11-09 (first published: 2018-10-24)
+This script will get the information of drives having free percentage less than or equal to 10 % (on all servers that are registered) 
+
+Simply run the script on a Registered Server. 
+
+Right click the Registered server (it could be DEV/QA or PROD or any other) and New Query and execute it.
+
+SELECT distinct(volume_mount_point), 
+   (select ((available_bytes/1048576* 1.0)/(total_bytes/1048576* 1.0) *100)) as FreePercentage
+FROM sys.master_files AS f CROSS APPLY 
+  sys.dm_os_volume_stats(f.database_id, f.file_id)
+  where ((available_bytes/1048576* 1.0)/(total_bytes/1048576* 1.0) *100) <= 10
+group by volume_mount_point, total_bytes/1048576, 
+  available_bytes/1048576 order by 1

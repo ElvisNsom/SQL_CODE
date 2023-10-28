@@ -1,0 +1,59 @@
+SET   NOCOUNT ON
+ 
+DECLARE   @c INT
+ 
+-- Table of failed jobs
+ 
+DECLARE   @failed_jobs TABLE (
+job_id    uniqueidentifier,
+step_id   int,
+step_name   sysname,
+sql_message_id   int,
+sql_severity   int,
+message   nvarchar(1024),
+run_status   int,
+FailureDate   datetime,
+server   nvarchar(30)
+)
+ 
+INSERT   @failed_jobs( job_id,   step_id, step_name,   sql_message_id, sql_severity,
+     message, run_status, FailureDate, server )
+SELECT   job_id, step_id,   step_name, sql_message_id, sql_severity,
+     message, run_status, FailureDate, server
+FROM (    SELECT job_id,   step_id, step_name,   sql_message_id, sql_severity,
+          message, run_status, 
+          (   DATEADD(ss, CAST(SUBSTRING(CAST( jh.run_duration 
+                   + 1000000 AS char(7)), 6, 2) AS int),
+                 DATEADD(mi, CAST(SUBSTRING(CAST( jh.run_duration 
+                   + 1000000 AS char(7)), 4, 2) AS int), 
+                 DATEADD(hh, CAST(SUBSTRING(CAST( jh.run_duration 
+                   + 1000000 AS char(7)), 2, 2) AS int), 
+                 DATEADD(ss, CAST(SUBSTRING(CAST( jh.run_time
+                   + 1000000 AS char(7)), 6, 2) AS int),
+                 DATEADD(mi, CAST(SUBSTRING(CAST( jh.run_time
+                   + 1000000 AS char(7)), 4, 2) AS int),
+                 DATEADD(hh, CAST(SUBSTRING(CAST( jh.run_time
+                   + 1000000 AS char(7)), 2, 2) AS int),
+                          CONVERT(datetime, CAST(jh.run_date AS char(8)))  )))))) )
+                        AS FailureDate,
+                server
+     FROM  msdb.dbo.sysjobhistory AS   jh ) AS jh 
+WHERE     (GETDATE()   > jh.FailureDate)
+    AND (jh.run_status = 0) 
+    -- Identify how many days to go back and look for   failures
+    AND (DATEADD(dd, -1 , GETDATE()) < jh.FailureDate)
+ 
+SELECT   @c=count(*)
+FROM   @failed_jobs
+ 
+IF   @c > 0 
+BEGIN
+    SELECT SUBSTRING(j.name, 1, 50) AS JobName,
+      SUBSTRING(jh.step_name, 1, 50) AS StepName, message,
+      jh.FailureDate AS   FailureDate
+    FROM         @failed_jobs jh INNER JOIN
+                        msdb.dbo.sysjobs   j ON jh.job_id   = j.job_id 
+END
+ELSE
+    SELECT 'No Failed   Jobs For Reporting Period' JobName, ' ' StepName, ' ' FailureDate
+  

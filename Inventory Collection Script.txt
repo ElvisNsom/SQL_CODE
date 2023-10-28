@@ -1,0 +1,59 @@
+Inventory Collection Script
+Inventory Collect Query is like following, it will make your job very simplify when you connect to any SQL Server database for the first time.
+
+ 
+
+select getdate() Date_Collected
+	  ,serverproperty('MachineName') 'Machine_Name'
+	  ,isnull(serverproperty('InstanceName'),'mssqlserver') 'Instance_Name'
+	  ,@@SERVERNAME 'Sql_Server_Name'
+	  ,SERVERPROPERTY('productversion') Product_Version 
+	  ,SERVERPROPERTY ('productlevel') Product_Level 
+	  ,SERVERPROPERTY ('edition') 'Edition'
+	  ,d.name 'database_name'
+	  ,suser_sname(d.owner_sid) 'owner'
+	  ,ls.cntr_value as [log_size_kb]
+	  ,lu.cntr_value as [log_used_kb]
+	  ,lp.cntr_value as [percent_log_used]
+	  ,ds.cntr_value as [data_files_size_kb]
+from sys.databases d
+	 left outer join sys.dm_os_performance_counters as lu on lu.instance_name=d.name and lu.counter_name like N'Log File(s) Used Size (KB)%'
+	 left outer join sys.dm_os_performance_counters as ls on ls.instance_name=d.name and ls.counter_name like N'Log File(s) Size (KB)%' and ls.cntr_value > 0
+	 left outer join sys.dm_os_performance_counters as lp on lp.instance_name=d.name and lp.counter_name like N'Percent Log Used%'
+	 left outer join sys.dm_os_performance_counters as ds on ds.instance_name=d.name and ds.counter_name like N'Data File(s) Size (KB)%'
+order by d.name;
+
+
+-----------------------------------------
+
+
+select 
+	  serverproperty('MachineName') 'machine_name'
+	  ,isnull(serverproperty('InstanceName'),'mssqlserver') 'instance_name'
+	  ,@@SERVERNAME 'sql_server_name'
+	  ,d.name 'database_name'
+	  ,suser_sname(d.owner_sid) 'owner'
+	  ,d.compatibility_level
+	  ,d.collation_name
+	  ,d.is_auto_close_on
+	  ,d.is_auto_shrink_on
+	  ,d.state_desc
+	  ,d.snapshot_isolation_state
+	  ,d.is_read_committed_snapshot_on
+	  ,d.recovery_model_desc
+	  ,d.is_auto_create_stats_on
+	  ,d.is_auto_update_stats_on
+	  ,d.is_auto_update_stats_async_on
+	  ,d.is_in_standby
+	  ,d.page_verify_option_desc
+	  ,d.log_reuse_wait_desc
+	  ,ls.cntr_value as [log size (kb)]
+	  ,lu.cntr_value as [log used (kb)]
+	  ,lp.cntr_value as [percent log used]
+	  ,ds.cntr_value as [data file(s) size (kb)]
+from sys.databases d
+	 inner join sys.dm_os_performance_counters as lu on lu.instance_name=d.name and lu.counter_name like N'Log File(s) Used Size (KB)%'
+	 inner join sys.dm_os_performance_counters as ls on ls.instance_name=d.name and ls.counter_name like N'Log File(s) Size (KB)%' and ls.cntr_value > 0
+	 inner join sys.dm_os_performance_counters as lp on lp.instance_name=d.name and lp.counter_name like N'Percent Log Used%'
+	 inner join sys.dm_os_performance_counters as ds on ds.instance_name=d.name and ds.counter_name like N'Data File(s) Size (KB)%'
+order by d.name

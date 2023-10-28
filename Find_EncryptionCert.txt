@@ -1,0 +1,9 @@
+USE master;
+GO
+SELECT db_name(database_id) DatabaseName, 
+cer.name as CertificateName
+FROM sys.dm_database_encryption_keys dek
+INNER JOIN sys.certificates cer ON 
+dek.encryptor_thumbprint = cer.thumbprint
+WHERE 
+db_name(database_id) ='[AdventureWorks2019]'

@@ -1,0 +1,1 @@
+Select suser_sname(owner_sid) as 'owner', state_desc,*from sys.databases

@@ -1,0 +1,80 @@
+Remove Database Encryption Key on all user databases
+nittesh16, 2018-02-08 (first published: 2018-01-29)
+This script can be used to remove transparent database encryption on all the user databases. 
+
+If the database size is big the decryption process may time and you need increase the time in the WAITFOR DELAY option in the code.
+
+--Remove Database Encryption Key(DEK) for all user databases
+
+DECLARE @sql varchar(2000),
+                  @dbname varchar(64),
+                  @progress INT
+   
+DECLARE apply_tde CURSOR FOR 
+   SELECT d.name
+   FROM  sys.databases d INNER JOIN 
+   sys.dm_database_encryption_keys dek
+   ON d.name=DB_NAME(dek.database_id) 
+   AND dek.encryption_state=3 AND d.database_id >4
+
+       OPEN apply_tde
+       FETCH NEXT FROM apply_tde INTO @dbname 
+       WHILE @@FETCH_STATUS <> -1
+       BEGIN
+
+       SELECT @sql = 'USE [master] ALTER DATABASE [@dbname] SET ENCRYPTION OFF'
+       SELECT @sql = REPLACE(@sql,'@dbname',@dbname)
+       PRINT  'Encryption Removal started --'+@sql
+       EXEC  (@sql)
+
+       SELECT @progress=COUNT(*) FROM sys.dm_database_encryption_keys 
+      WHERE encryption_state=5
+
+      IF @progress >0
+      BEGIN
+      WAITFOR DELAY '00:02'
+      END
+
+      SELECT @sql ='USE [@dbname]
+      DROP DATABASE ENCRYPTION KEY'
+
+      SELECT @sql = REPLACE(@sql,'@dbname',@dbname)
+      PRINT  'Encryption Removal finished --'+@sql
+      EXEC  (@sql)
+
+      FETCH NEXT FROM apply_tde into @dbname
+      END
+   
+  CLOSE apply_tde
+  DEALLOCATE apply_tde
+GO
+
+-- Remove the certificate and master key
+USE [master]
+
+--Drop Certificate       
+DROP CERTIFICATE AZ_TDE_PRD
+--Drop Master Key 
+DROP MASTER KEY
+
+
+SELECT 
+     DB_NAME(database_id) AS 'Database Name'
+    ,create_date AS 'Create Date'
+    ,set_date AS 'Set Date'
+    ,(CASE 
+        WHEN Encryption_State='0' THEN 'No Database Encryption' 
+        WHEN Encryption_State='1' THEN 'Unencrypted'
+        WHEN Encryption_State='2' THEN 'Encryption In Progress'
+        WHEN Encryption_State='3' THEN 'Encrypted'
+        WHEN Encryption_State='4' THEN 'Key Change In Progress'
+        WHEN Encryption_State='5' THEN 'Decryption In Progress'
+        WHEN Encryption_State='6' THEN 'Protection Change In Progress'
+      END) AS 'Encryption State'
+    ,key_algorithm AS 'Algorithm Used'
+    ,key_length AS 'Key Length'
+    ,encryptor_thumbprint AS 'Encryptor Thumbprint'
+    ,percent_complete AS 'Percent Complete'
+    ,encryptor_type AS 'Encryptor Type'
+FROM sys.dm_database_encryption_keys
+GO

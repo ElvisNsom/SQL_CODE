@@ -1,0 +1,46 @@
+User Stored Procedure for Backup of user databases
+Junior Galvão - MVP, 2018-07-10 (first published: 2018-07-05)
+This script creates a stored Procedure for the user named P_BackupAllUsersDatabases.
+Using the Select command in conjunction with the existing DBId and Name columns in the Sys.SysDatabase system view is creating a column named command, which is responsible for storing the instructions later used by the Backup Database command.
+The result of this Select command is stored in a temporary table called #CommandBackupDatabases, which will later be using within the While execution block.
+In this column named Command is specified a default storage location of the backup files defined with the corresponding backup name of concatenated with the. bak extension.
+The Master, MSDB, Model, and TempDB system databases are not involved in this backup procedure.
+The While execution block is responsible for performing the Backup command set for each database through the command column and its assigned value to a variable named @Command executed through the Exec() command.
+The While execution block will run until all of the identified user databases have their backup process run, in the event that any error message stored procedure appears on screen in which line or part of code happened due Error.
+Its execution form is quite simple, just use the Exec command accompanied by the name of the User stored Procedure P_BackupAllUsersDatabases, as shown in the example below:
+
+
+Exec P_BackupAllUsersDatabases
+Go
+
+Create Procedure P_BackupAllUsersDatabases
+As
+Begin
+ Begin Try
+  Select SD.DbId, 'Backup Database ['+sd.name + '] To Disk = '+'''S:\MSSQL-2017\Backup\'+sd.name+'.Bak'+''' With Init, NoFormat, Description = '+'''Backup para armazenamento - Database - '+sd.Name+''''+Char(13) As 'Command'
+  Into #CommandBackupDatabases
+  from Sys.SysDatabases SD
+  WHERE  name NOT IN ('master', 'msdb', 'model', 'tempdb')
+  and    status <> 66048
+
+  Declare @Counter Int, @Command NVarchar(1000)
+
+  Set @Counter = (Select MIN(DBID) from #CommandBackupDatabases)
+
+  While @Counter < (Select COUNT(DBID) + Min(DBID) From #CommandBackupDatabases)
+   Begin
+ 
+    Set @Command = (Select Command From #CommandBackupDatabases Where dbid = @Counter) 
+  
+    Exec(@Command)
+  
+    Set @Counter +=1
+  End
+ End Try
+ Begin Catch
+   SELECT ERROR_NUMBER() AS ErrorNumber, ERROR_SEVERITY() AS ErrorSeverity,
+          ERROR_STATE() AS ErrorState, ERROR_PROCEDURE() AS ErrorProcedure,
+          ERROR_MESSAGE() AS ErrorMessage, ERROR_LINE() AS ErrorLine;   
+ End Catch
+End
+Go

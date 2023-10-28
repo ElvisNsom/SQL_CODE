@@ -1,0 +1,45 @@
+Using Azure Storage for backup and restore purposes
+
+step 1
+
+Create an azure storage account
+
+
+Step 2
+
+Create a container
+
+Step 3
+USE master
+GO
+CREATE CREDENTIAL SQLBackup --give this a meaningful name
+--storage account name:
+WITH IDENTITY='sqlbackups12345',
+--storage account key from portal:
+SECRET = 'pvv99UFQvuLadBEb7ClZhRsf9zE8/OA9B9E2ZV2kuoDXu7hy0YA5OTgr89tEAqZygH+3ckJQzk8a4+mpmjN7Lg=='
+GO
+
+
+step 4
+--back it up to Azure
+--get URL from portal, add database name-date to the end of the URL
+ 
+BACKUP DATABASE Test
+TO URL = N'https://sqlbackups12345.blob.core.windows.net/kbh-precision-2016/Test_20180114_1038am.bak'
+WITH credential = 'SQLBackups';
+GO
+ 
+-- go see the file in the portal
+
+
+-- Restore the DB to a new DB:
+--use the same URL as above
+-- WITH Moves to new file names
+ 
+RESTORE DATABASE Test_restored --new database name
+FROM URL = 'https://sqlbackups12345.blob.core.windows.net/kbh-precision-2016/Test_20180114_1038am.bak'
+WITH CREDENTIAL = 'SQLBackups',
+Move 'test' to 'C:\Program Files\Microsoft SQL Server\MSSQL13.SQL2016\MSSQL\DATA\Test_Restored.mdf',
+Move 'test_log' to 'C:\Program Files\Microsoft SQL Server\MSSQL13.SQL2016\MSSQL\DATA\Test_Restored.ldf'
+;
+GO

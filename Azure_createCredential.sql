@@ -1,0 +1,1 @@
+USE masterCREATE CREDENTIAL SQLBackup --give this a meaningful name--storage account name:WITH IDENTITY='nsomtechstorage',--storage account key from portal:SECRET = 'Jo2GrCz1xFPTg+YedKj9Mc2WhobyJfJvGea4b0pav5wOkLZDVcycHkFDotOP2gfIHjdZvWe1Gbjg9e4QZMoxhw=='

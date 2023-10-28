@@ -1,0 +1,49 @@
+USE [master]
+GO
+
+/** Object:  StoredProcedure [dbo].[KillSuspendedConnections]    Script Date: 7/10/2020 2:14:21 PM **/
+SET ANSI_NULLS ON
+GO
+
+SET QUOTED_IDENTIFIER ON
+GO
+
+
+CREATE PROC [dbo].[KillSuspendedConnections] 
+AS 
+BEGIN 
+IF((SELECT COUNT(1) FROM master..sysprocesses (NOLOCK) WHERE spid>52 AND status='suspended' )>=1500)
+   BEGIN  
+DECLARE @v_spid INT
+DECLARE c_Users CURSOR
+   FAST_FORWARD FOR
+   SELECT SPID
+   FROM master..sysprocesses (NOLOCK)
+   WHERE spid>52
+   AND status='suspended' --and dbid=db_id(''databasename'')
+   AND loginame in ('OMDataReader','SHRUser_ENG')
+DECLARE @sql VARCHAR(100)
+
+OPEN c_Users
+FETCH NEXT FROM c_Users INTO @v_spid
+WHILE (@@FETCH_STATUS=0)
+BEGIN
+  SET @sql =  CONCAT(@sql, 'kill ' , @v_spid, CHAR(13))
+  EXEC(@sql) 
+  SET  @sql= ''
+  FETCH NEXT FROM c_Users INTO @v_spid
+END
+
+CLOSE c_Users
+DEALLOCATE c_Users
+
+--DECLARE @sql1 NVARCHAR(max) = ''
+--SELECT @sql1 = CONCAT(@sql1, 'kill ' , session_id, CHAR(13))
+--FROM sys.dm_exec_requests 
+--WHERE status = 'suspended'
+--EXEC(@sql1) 
+END 
+END 
+
+
+GO

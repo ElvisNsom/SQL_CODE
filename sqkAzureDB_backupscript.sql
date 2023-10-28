@@ -1,0 +1,1 @@
+BACKUP DATABASE AzureDBTO URL = N'https://nsomtechstorage.blob.core.windows.net/sqlbackup/AzureDB.bak'WITH credential = 'SQLBackup';

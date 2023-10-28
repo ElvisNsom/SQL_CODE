@@ -1,0 +1,11 @@
+Disk Status
+The second HTML table contains the information of the disk is placed. The query to populate the disk volume information is the following:
+
+
+SELECT DISTINCT volumes.logical_volume_name AS LogicalName,
+    volumes.volume_mount_point AS Drive,
+    CONVERT(INT,volumes.available_bytes/1024/1024/1024) AS FreeSpace,
+    CONVERT(INT,volumes.total_bytes/1024/1024/1024) AS TotalSpace,
+    CONVERT(INT,volumes.total_bytes/1024/1024/1024) - CONVERT(INT,volumes.available_bytes/1024/1024/1024) AS OccupiedSpace
+FROM sys.master_files mf
+CROSS APPLY sys.dm_os_volume_stats(mf.database_id, mf.FILE_ID) volume

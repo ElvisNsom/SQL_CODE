@@ -1,0 +1,1 @@
+--basic information from CentralDB.Inst.InstanceInfoSELECT distinct a.ServerName, a.InstanceName, b.Environment, a.SQLVersion, a.SQLEdition, a.SQLPatchLevel, a.SQLEdition, a.SQLVersionNo  FROM [CentralDB].[Inst].[InstanceInfo] a, [CentralDB].[Svr].[ServerList] b WHERE a.ServerName = b.ServerName and SQLVersion like '%2008%'  --change version as needed

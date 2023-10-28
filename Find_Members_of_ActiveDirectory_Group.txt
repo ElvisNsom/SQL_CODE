@@ -1,0 +1,44 @@
+---find out memebers of Active Direcory Group that already in SQL Server
+
+master.dbo.xp_logininfo '<ActiveDirectory_Group_name\SQLDBread>', 'members'
+
+---find out memebers of Active Direcory Group that below user exist in
+
+Exec master.dbo.xp_logininfo '<ActiveDirectory_name\user_name>'
+
+ALTER SERVER ROLE [udsr_dba] ADD MEMBER [MYDOMAIN\SqlDBAGroup]GO
+
+USE master;
+GO
+CREATE LOGIN [MYDOMAIN\APPLICATION SUPPORT] FROM WINDOWS;
+GO
+USE mydb;
+GO
+CREATE USER [MYDOMAIN\APPLICATION SUPPORT] FROM LOGIN [MYDOMAIN\APPLICATION SUPPORT];
+GO
+CREATE ROLE rSupport;
+GO
+EXEC sp_addrolemember 'rSupport', 'MYDOMAIN\APPLICATION SUPPORT';
+GO
+GRANT SELECT, INSERT,UPDATE, etc ON Mytable TO rSupport;
+GO
+
+USE [AdvWorks]
+GRANT EXECUTE ON SCHEMA::[SalesLT] TO [db_sql_reader]
+GRANT SELECT  ON SCHEMA::[SalesLT] TO [db_sql_reader]
+GO
+
+USE [AdvWorks]
+GRANT EXECUTE ON SCHEMA::[SalesLT] TO [db_sql_developer]
+GRANT SELECT  ON SCHEMA::[SalesLT] TO [db_sql_developer]
+GRANT INSERT  ON SCHEMA::[SalesLT] TO [db_sql_developer]
+GRANT UPDATE  ON SCHEMA::[SalesLT] TO [db_sql_developer]
+GRANT DELETE  ON SCHEMA::[SalesLT] TO [db_sql_developer]
+GO
+
+USE [AdvWorks]
+ 
+ALTER ROLE [db_sql_dba]       ADD MEMBER [SqlDBA]
+ALTER ROLE [db_sql_developer] ADD MEMBER [SqlDeveloper]
+ALTER ROLE [db_sql_dba]       ADD MEMBER [SqlDBA]
+GO

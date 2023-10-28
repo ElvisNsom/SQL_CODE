@@ -1,0 +1,150 @@
+This would give you currently running jobs:
+
+
+SELECT sj.name
+   , sja.*
+FROM msdb.dbo.sysjobactivity AS sja
+INNER JOIN msdb.dbo.sysjobs AS sj ON sja.job_id = sj.job_id
+WHERE sja.start_execution_date IS NOT NULL
+   AND sja.stop_execution_date IS NULL
+
+
+
+
+This will show you the longest running SPIDs on a SQL 2000 or SQL 2005 server:
+
+select
+    P.spid
+,   right(convert(varchar, 
+            dateadd(ms, datediff(ms, P.last_batch, getdate()), '1900-01-01'), 
+            121), 12) as 'batch_duration'
+,   P.program_name
+,   P.hostname
+,   P.loginame
+from master.dbo.sysprocesses P
+where P.spid > 50
+and      P.status not in ('background', 'sleeping')
+and      P.cmd not in ('AWAITING COMMAND'
+                    ,'MIRROR HANDLER'
+                    ,'LAZY WRITER'
+                    ,'CHECKPOINT SLEEP'
+                    ,'RA MANAGER')
+order by batch_duration desc
+
+
+
+16
+
+I would suggest querying the sys views. something similar to
+
+SELECT * 
+FROM 
+   sys.dm_exec_sessions s
+   LEFT  JOIN sys.dm_exec_connections c
+        ON  s.session_id = c.session_id
+   LEFT JOIN sys.dm_db_task_space_usage tsu
+        ON  tsu.session_id = s.session_id
+   LEFT JOIN sys.dm_os_tasks t
+        ON  t.session_id = tsu.session_id
+        AND t.request_id = tsu.request_id
+   LEFT JOIN sys.dm_exec_requests r
+        ON  r.session_id = tsu.session_id
+        AND r.request_id = tsu.request_id
+   OUTER APPLY sys.dm_exec_sql_text(r.sql_handle) TSQL
+This way you can get a TotalPagesAllocated which can help you figure out the spid that is taking all the server resources. There has lots of times when I can't even bring up activity monitor and use these sys views to see what's going on
+
+
+
+
+If you're running SQL Server 2005 or 2008, you could use the DMV's to find this...
+
+SELECT  *
+FROM    sys.dm_exec_requests  
+        CROSS APPLY sys.dm_exec_sql_text(sql_handle)  
+
+
+
+
+#/T-SQL Query to find currently running jobs
+
+Here is a T-SQL query to find the currently executing jobs.
+The output of this query will be the list of jobs that are currently running along with the number of seconds it is been running.
+
+-----------------------====
+
+SELECT  J.name as Running_Jobs,  
+  JA.Start_execution_date As Starting_time,
+        datediff(ss, JA.Start_execution_date,getdate()) as [Has_been_running(in Sec)]
+FROM msdb.dbo.sysjobactivity JA
+JOIN msdb.dbo.sysjobs J
+ON J.job_id=JA.job_id
+WHERE job_history_id is null
+      AND start_execution_date is NOT NULL
+ORDER BY start_execution_date
+
+-----------------------
+
+SELECT
+    ja.job_id,
+    j.name AS job_name,
+    ja.start_execution_date,      
+    ISNULL(last_executed_step_id,0)+1 AS current_executed_step_id,
+    Js.step_name
+FROM msdb.dbo.sysjobactivity ja 
+LEFT JOIN msdb.dbo.sysjobhistory jh ON ja.job_history_id = jh.instance_id
+JOIN msdb.dbo.sysjobs j ON ja.job_id = j.job_id
+JOIN msdb.dbo.sysjobsteps js
+    ON ja.job_id = js.job_id
+    AND ISNULL(ja.last_executed_step_id,0)+1 = js.step_id
+WHERE
+  ja.session_id = (
+    SELECT TOP 1 session_id FROM msdb.dbo.syssessions ORDER BY agent_start_date DESC
+  )
+AND start_execution_date is not null
+AND stop_execution_date is null;
+
+====================================================
+
+
+---This query will give you the exact output for current running jobs. This will also shows the duration of running job in minutes.
+
+WITH
+    CTE_Sysession (AgentStartDate)
+    AS 
+    (
+        SELECT MAX(AGENT_START_DATE) AS AgentStartDate FROM MSDB.DBO.SYSSESSIONS
+    )   
+SELECT sjob.name AS JobName
+        ,CASE 
+            WHEN SJOB.enabled = 1 THEN 'Enabled'
+            WHEN sjob.enabled = 0 THEN 'Disabled'
+            END AS JobEnabled
+        ,sjob.description AS JobDescription
+        ,CASE 
+            WHEN ACT.start_execution_date IS NOT NULL AND ACT.stop_execution_date IS NULL  THEN 'Running'
+            WHEN ACT.start_execution_date IS NOT NULL AND ACT.stop_execution_date IS NOT NULL AND HIST.run_status = 1 THEN 'Stopped'
+            WHEN HIST.run_status = 0 THEN 'Failed'
+            WHEN HIST.run_status = 3 THEN 'Canceled'
+        END AS JobActivity
+        ,DATEDIFF(MINUTE,act.start_execution_date, GETDATE()) DurationMin
+        ,hist.run_date AS JobRunDate
+        ,run_DURATION/10000 AS Hours
+        ,(run_DURATION%10000)/100 AS Minutes 
+        ,(run_DURATION%10000)%100 AS Seconds
+        ,hist.run_time AS JobRunTime 
+        ,hist.run_duration AS JobRunDuration
+        ,'tulsql11\dba' AS JobServer
+        ,act.start_execution_date AS JobStartDate
+        ,act.last_executed_step_id AS JobLastExecutedStep
+        ,act.last_executed_step_date AS JobExecutedStepDate
+        ,act.stop_execution_date AS JobStopDate
+        ,act.next_scheduled_run_date AS JobNextRunDate
+        ,sjob.date_created AS JobCreated
+        ,sjob.date_modified AS JobModified      
+            FROM MSDB.DBO.syssessions AS SYS1
+        INNER JOIN CTE_Sysession AS SYS2 ON SYS2.AgentStartDate = SYS1.agent_start_date
+        JOIN  msdb.dbo.sysjobactivity act ON act.session_id = SYS1.session_id
+        JOIN msdb.dbo.sysjobs sjob ON sjob.job_id = act.job_id
+        LEFT JOIN  msdb.dbo.sysjobhistory hist ON hist.job_id = act.job_id AND hist.instance_id = act.job_history_id
+        WHERE ACT.start_execution_date IS NOT NULL AND ACT.stop_execution_date IS NULL
+        ORDER BY ACT.start_execution_date DESC

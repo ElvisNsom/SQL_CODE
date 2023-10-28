@@ -1,0 +1,3 @@
+SELECT command, percent_complete, start_time 
+FROM sys.dm_exec_requests
+where percent_complete <> 0;
