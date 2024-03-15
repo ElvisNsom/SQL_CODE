@@ -1,0 +1,97 @@
+Amazon RDS (Relational Database Service) is a managed relational database service provided by Amazon Web Services (AWS). 
+It simplifies the process of setting up, operating, and scaling a relational database in the cloud by automating many of 
+the administrative tasks associated with database management.
+
+Amazon RDS supports several popular database engines, including:
+
+* Amazon Aurora
+* PostgreSQL
+* MySQL
+* MariaDB
+* Oracle Database
+* SQL Server
+
+With Amazon RDS, you can create a database instance, select the desired database engine, and configure storage and other
+ settings. Amazon RDS handles tasks such as provisioning, patch management, backup, recovery, and failover support, allowing
+ you to focus on your applications and data.
+
+Some of the key features of Amazon RDS include:
+
+1. *Managed backups*: Amazon RDS automatically creates and saves backups of your database, allowing you to restore your data 
+to any point in time during the backup retention period.
+2. *Automatic failover*: In the event of a database instance failure, Amazon RDS can automatically switch to a standby 
+replica to minimize downtime and data loss.
+3. *Scalability*: You can easily scale your database resources up or down based on your application's needs, either 
+horizontally (adding read replicas) or vertically (increasing compute or storage capacity).
+4. *Security*: Amazon RDS provides various security features such as encryption, identity and access management (IAM),
+ and virtual private cloud (VPC) isolation to help protect your data.
+5. *Monitoring and performance optimization*: Amazon RDS integrates with CloudWatch and other AWS monitoring tools, 
+providing detailed performance metrics and helping you optimize your database performance.
+6. *Database engine compatibility*: Amazon RDS is compatible with various popular database engines, enabling you to 
+migrate your existing databases with minimal effort.
+
+By providing a managed database service, Amazon RDS allows you to focus on your core business and application development,
+ while AWS takes care of the underlying database infrastructure and maintenance.
+=====================================================================================================================
+HOW TO SETUP A SQL SERVER DATABASE IN RDS
+
+To set up a SQL Server database in Amazon RDS, follow these steps:
+
+1. *Sign in to the AWS Management Console*: Open a web browser, navigate to the AWS Management Console, and sign in using 
+your AWS account credentials.
+2. *Open the Amazon RDS Console*: In the AWS Management Console, find the "Database" section and click on "RDS" to open the
+ Amazon RDS Console.
+3. *clink Create a DB Instance*: Click on the "Create database" button to start the process of creating a new DB instance.
+4. *Choose the database creation method*: Select "Standard create" for the database creation method.
+5. *Choose the database engine*: In the "Engine options" section, select "Microsoft SQL Server" as the database engine and 
+select the Database Engine Edition. E.G Standard Edition. Under Template, select Dev/Test ( this is just for practice)
+6. *Choose the DB instance size*: Select the appropriate DB instance size based on your storage, compute, and memory 
+requirements. You can modify this selection later if needed.
+7. *Configure database settings: *DB instance identifier*: Enter a unique name for your DB instance.
+	* *Master username*: Provide a username for the master user account.
+	* *Master password*: Enter a secure password for the master user account.
+	* *Confirm password*: Confirm the master password by re-entering it.
+8. *Configure additional settings*: Expand the "Additional configuration" section at the bottom of the page to configure 
+the following settings:
+	* *Database port*: Enter the desired port number for your SQL Server database.
+	* *Database options*: Choose any specific database options you want to enable, such as encryption or backup settings.
+	* *Network & security*: Configure the VPC, subnet, security group, and other network settings for your DB instance.
+9. *Launch DB instance*: After configuring all the settings, click the "Create database" button to launch your SQL Server 
+DB instance. This process may take a few minutes.
+
+===============================================================================================================
+
+CREATE AN INSTANCE (JUMP BOX) TO CONNECT TO YOUR DATABASE.
+1. CLICK ON LAUNCH INSTANCE
+2. GIVE A NAME TO YOUR INSTANCE. RDS-JUMP-BOX
+3. SELECT THE AMI. (EG WINDOWS)
+=====================================================
+HOW TO CONNECT TO THE DATABASE INSTANCE THROUGH THE JUMPBOX
+
+1. Click on the Database instance name.
+2. Scroll down the page and select "Setup EC2 Connection", and select the instance you want to connect the database to 
+and click on the "Continue" button. Click on "Setup"
+3. select your EC2 instance,  click on the "Connect" button and select "RDS CLIENT"
+4. Click on "Download Remote Desktop File"
+5. Click on the "OPEN" button arrow besides RDS in the download folder.
+6. Select on the "CONNECT" button and select "More Choices"
+7. select "use different user". in the username, type "administrator" 
+8. Where you are asked to enter password, go back to the RDS page and click on "GET PASSWORD". Click on " UPLOAD PRIVATE
+KEY FILE". Click on the location where you saved the private key and select "Open"
+9. The Private key appears as encrypted. Click on "Decrypt Password". Copy the decrypted password and paste in the RDS screen 
+where the password is required. Click on "Yes" when required.
+10. To connect to your database download and install ssms
+11. After installing SSMS, launch  it.
+12. on the SSMS home screen, when server name is requested, copy your database END POINT as paste in the as server name.
+The END POINT is used to setup connections with the database.
+13. Select SQL Server authintication for your authentication mode. Enter the user_name and Password that was used in creating
+the database.
+
+Once the DB instance is created, you can connect to it using SQL Server Management Studio (SSMS) or another SQL client. 
+To do this, retrieve the DB instance's endpoint  from the Amazon RDS Console, and use these details to 
+establish a connection from your SQL client.
+
+Remember to secure your DB instance by limiting access to the database through security groups and following best practices 
+for managing user accounts and permissions.
+
+

@@ -1,0 +1,164 @@
+kOps, short for Kubernetes Operations, is an open-source project that provides a set of tools and utilities for creating, 
+destroying, upgrading, and maintaining production-grade, highly available Kubernetes clusters. It simplifies the process of 
+managing Kubernetes clusters by automating many of the operational tasks involved.
+
+kOps works by using a command-line interface (CLI) to generate and manage Kubernetes cluster resources, including
+ infrastructure components like virtual machines, networking, and storage. It supports various cloud providers, 
+such as Amazon Web Services (AWS), Google Cloud Platform (GCP), and DigitalOcean, as well as bare-metal deployments.
+
+Some key features of kOps include:
+
+1. *Infrastructure management*: kOps can provision and manage the underlying infrastructure for Kubernetes clusters, 
+including virtual machines, load balancers, and storage resources.
+2. *High availability*: kOps supports the creation of highly available Kubernetes clusters with multiple masters and 
+worker nodes, ensuring that your applications remain online even in the event of failures.
+3. *Cluster customization*: kOps allows users to customize their Kubernetes clusters using a declarative configuration
+ file, enabling fine-grained control over various aspects of the cluster, such as networking, authentication, and add-ons.
+4. *Upgrade management*: kOps simplifies the process of upgrading Kubernetes clusters by automating the upgrade of both 
+the control plane and worker nodes.
+5. *Disaster recovery*: kOps supports backing up and restoring Kubernetes clusters, enabling users to recover their 
+workloads in case of a disaster.
+6. *Integration with other tools*: kOps can be integrated with other popular Kubernetes tools and services, such as Helm,
+ Istio, and Prometheus, to provide a comprehensive Kubernetes management solution.
+
+In summary, kOps is a powerful tool for managing the entire lifecycle of Kubernetes clusters, providing a simple and 
+efficient way to create, maintain, and operate production-grade, highly available Kubernetes environments.
+
+
+
+=====================================PROCEDURE TO SETUP KOPS==================================================
+1. Create an EC2 instance and call it kops and select ubuntu as the ami.
+2. select or create a key pair.
+3. select all options under security group (allow ssh traffic, allow HTTP traffic and all HTTPS traffic) and click on 
+"CREATE"
+4. Launch the instance, copy the public IP address and use mobaxteam to open a session.
+5. When the instance is launced update it using the "sudo apt update" command.
+6. install awscli using     "
+"
+7. install kops using the following command 
+ 
+curl -LO https://github.com/kubernetes/kops/releases/download/$(curl -s https://api.github.com/repos/kubernetes/kops/releases/latest | grep tag_name | cut -d '"' -f 4)/kops-linux-amd64
+chmod +x kops-linux-amd64
+sudo mv kops-linux-amd64 /usr/local/bin/kops
+
+8. install kubectl using the command below.
+
+curl -LO https://storage.googleapis.com/kubernetes-release/release/$(curl -s https://storage.googleapis.com/kubernetes-release/release/stable.txt)/bin/linux/amd64/kubectl
+chmod +x ./kubectl
+sudo mv ./kubectl /usr/local/bin/kubectl
+
+9. launch aws and create a role called "Kops", select "aws service", under 'use_case', select"EC2"
+  click on "Next".Under "Permission Policies" select "AdministratorAcess" This gives the Kops user full access to all 
+ other services in aws.
+
+10. Give a name to your new role. E.g "Kops" and click on the "Create" button.
+
+11. Attach the EC2 instance to the role created above: select the instance, 
+click on "Action"====="Security===="Mordify AMI, select the role to be attached to the EC2 and click on "Update AMI ROLE"
+
+10. Launch MobaXterm, and connect to your EC2 instance (copy public IP of the instance you created, click on session, select SSH, 
+enter the public IP, specify user_name (e.g ubuntu), select "Advance SSH Setting and select "Use Private Key (here select the private
+key pair that was used to create the instance. it ends with the .pem extension.
+
+11. create an S3 bucket as shown below
+ ]$ aws s3 mb s3://afriks3.in.k8s --region us-east-1
+This bucket is going to be used to store the state of our cluster when created.
+
+12. create a private DNS Server using Route53. (click on Route53--Get started===="Hosted zone"==="start"
+
+12. create an ssh key that will be used to communicate between the control plan and the clusters
+]$ ssh-keygen
+
+13. Edit your .bashrc file and add the following enteries
+]$  vi  .bashrc 
+
+export KOPS_CLUSTER_NAME=afriks3.in
+export KOPS_STATE_STORE=s3://afriks3.in.k8s
+save and exit (:wq)
+
+14. execute the .bashrc script using the command below
+]$ source ~/.bashrc
+
+15. use the command below to create your clusters
+
+kops create cluster \
+--state=${KOPS_STATE_STORE} \
+--node-count=5 \
+--control-plane-size=t3.medium \
+--node-size=t3.medium \
+--zones=us-east-1a,us-east-1b \
+--name=${KOPS_CLUSTER_NAME} \
+--dns private \
+--control-plane-count=1
+
+15. update your kops clusters using the command below
+]$ kops update cluster --name afriks3.in --yes --admin
+
+16. validate your clusters using the command below
+]$ kops validate cluster --wait 10m
+
+17. To delete all kops clusters, use the command below
+]$ kops delete cluster --name afriks3.in --yes
+
+18. To run back all deleted clusters, execute the following command
+]$  kops update cluster --name afriks3.in --yes --admin
+]$  kops validate cluster --wait 10
+
+
+-----------------------------------------------------------------------------------------------------------------
+----------------------------------------------------------------------------------------------------------------------
+
+
+ 1  sudo apt update
+    2  sudo apt instal awsclisudo apt instal awscli
+    3  sudo apt instal awscli
+    4  sudo apt install awscli
+    5  curl -LO https://github.com/kubernetes/kops/releases/download/$(curl -s https://api.github.com/repos/kubernetes/kops/releases/latest | grep tag_name | cut -d '"' -f 4)/kops-linux-amd64
+    6  chmod +x kops-linux-amd64
+    7  sudo mv kops-linux-amd64 /usr/local/bin/kops
+    8  curl -LO https://storage.googleapis.com/kubernetes-release/release/$(curl -s https://storage.googleapis.com/kubernetes-release/release/stable.txt)/bin/linux/amd64/kubectl
+    9  chmod +x ./kubectl
+   10  sudo mv ./kubectl /usr/local/bin/kubectl
+   11  aws s3 mb s3://afriks3.in.k8s --region us-east-1
+   12  ssh-keygen
+   13  vi  .bashrc
+   14  source ~/.bashrc
+   15  kops create cluster --state=${KOPS_STATE_STORE} --node-count=5 --control-plane-size=t3.medium --node-size=t3.medium --zones=us-east-1a,us-east-1b --name=${KOPS_CLUSTER_NAME} --dns private --control-plane-count=1
+   16  vi  .bashrc
+   17  kops create cluster --state=${KOPS_STATE_STORE} --node-count=5 --control-plane-size=t3.medium --node-size=t3.medium --zones=us-east-1a,us-east-1b --name=${KOPS_CLUSTER_NAME} --dns private --control-plane-count=1
+   18  kops create cluster --state=${KOPS_STATE_STORE} --node-count=5 --control-plane-size=t3.medium --node-size=t3.medium --zones=us-east-1a,us-east-1b --name=${KOPS_CLUSTER_NAME} --dns private --control-plane-count=1
+   19  source ~/.bashrc
+   20  kops create cluster --state=${KOPS_STATE_STORE} --node-count=5 --control-plane-size=t3.medium --node-size=t3.medium --zones=us-east-1a,us-east-1b --name=${KOPS_CLUSTER_NAME} --dns private --control-plane-count=1
+   21  kops update cluster --name afriks3.in --yes --admin
+   22  kops validate cluster --wait 10m
+   23  history
+ubuntu@ip-172-31-16-198:~$ history
+    1  sudo apt update
+    2  sudo apt instal awsclisudo apt instal awscli
+    3  sudo apt instal awscli
+    4  sudo apt install awscli
+    5  curl -LO https://github.com/kubernetes/kops/releases/download/$(curl -s https://api.github.com/repos/kubernetes/kops/releases/latest | grep tag_name | cut -d '"' -f 4)/kops-linux-amd64
+    6  chmod +x kops-linux-amd64
+    7  sudo mv kops-linux-amd64 /usr/local/bin/kops
+    8  curl -LO https://storage.googleapis.com/kubernetes-release/release/$(curl -s https://storage.googleapis.com/kubernetes-release/release/stable.txt)/bin/linux/amd64/kubectl
+    9  chmod +x ./kubectl
+   10  sudo mv ./kubectl /usr/local/bin/kubectl
+   11  aws s3 mb s3://afriks3.in.k8s --region us-east-1
+   12  ssh-keygen
+   13  vi  .bashrc
+   14  source ~/.bashrc
+   15  kops create cluster --state=${KOPS_STATE_STORE} --node-count=5 --control-plane-size=t3.medium --node-size=t3.medium --zones=us-east-1a,us-east-1b --name=${KOPS_CLUSTER_NAME} --dns private --control-plane-count=1
+   16  vi  .bashrc
+   17  kops create cluster --state=${KOPS_STATE_STORE} --node-count=5 --control-plane-size=t3.medium --node-size=t3.medium --zones=us-east-1a,us-east-1b --name=${KOPS_CLUSTER_NAME} --dns private --control-plane-count=1
+   18  kops create cluster --state=${KOPS_STATE_STORE} --node-count=5 --control-plane-size=t3.medium --node-size=t3.medium --zones=us-east-1a,us-east-1b --name=${KOPS_CLUSTER_NAME} --dns private --control-plane-count=1
+   19  source ~/.bashrc
+   20  kops create cluster --state=${KOPS_STATE_STORE} --node-count=5 --control-plane-size=t3.medium --node-size=t3.medium --zones=us-east-1a,us-east-1b --name=${KOPS_CLUSTER_NAME} --dns private --control-plane-count=1
+   21  kops update cluster --name afriks3.in --yes --admin
+   22  kops validate cluster --wait 10m
+   23  history
+ubuntu@ip-172-31-16-198:~$
+
+
+
+
+
